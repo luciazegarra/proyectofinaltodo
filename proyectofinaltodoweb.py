@@ -32,6 +32,10 @@ dataset = cargar_datos()
 st.write("Vista previa de los datos:")
 st.dataframe(dataset.head())
 
+# Estadística descriptiva
+st.subheader("📊 Estadística Descriptiva de Variables Numéricas")
+st.dataframe(ds.describe())
+
 # Imputación de valores nulos
 numeric_cols = ['Edad', 'Ingreso_Mensual', 'Horas_Estudio_Semanal']
 categorical_cols = ['Nivel_Educativo', 'Genero']
