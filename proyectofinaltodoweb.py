@@ -32,9 +32,9 @@ dataset = cargar_datos()
 st.write("Vista previa de los datos:")
 st.dataframe(dataset.head())
 
-# Estadística descriptiva
 st.subheader("📊 Estadística Descriptiva de Variables Numéricas")
-st.dataframe(ds.describe())
+ds_num = dataset.select_dtypes(include=['float64', 'int64'])
+st.dataframe(ds_num.describe())
 
 # Imputación de valores nulos
 numeric_cols = ['Edad', 'Ingreso_Mensual', 'Horas_Estudio_Semanal']
