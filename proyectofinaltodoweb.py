@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug  4 11:21:40 2025
-
 @author: zegar
 """
 
-# app.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -16,7 +14,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.metrics import r2_score, mean_squared_error, classification_report, confusion_matrix
 from sklearn.preprocessing import StandardScaler
 
 # Configuración inicial
@@ -32,6 +30,7 @@ dataset = cargar_datos()
 st.write("Vista previa de los datos:")
 st.dataframe(dataset.head())
 
+# Estadística descriptiva
 st.subheader("📊 Estadística Descriptiva de Variables Numéricas")
 ds_num = dataset.select_dtypes(include=['float64', 'int64'])
 st.dataframe(ds_num.describe())
@@ -46,7 +45,7 @@ dataset[numeric_cols] = numeric_imputer.fit_transform(dataset[numeric_cols])
 categorical_imputer = SimpleImputer(strategy="most_frequent")
 dataset[categorical_cols] = categorical_imputer.fit_transform(dataset[categorical_cols])
 
-# Análisis de distribución de Género
+# Distribución de Género
 st.subheader("📌 Distribución de Género")
 gender_counts = dataset['Genero'].value_counts()
 fig1, ax1 = plt.subplots()
@@ -54,7 +53,7 @@ ax1.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle
 ax1.axis("equal")
 st.pyplot(fig1)
 
-# Análisis de Nivel Educativo
+# Nivel Educativo
 st.subheader("🎓 Nivel Educativo")
 nivel_educativo_percent = dataset['Nivel_Educativo'].value_counts(normalize=True) * 100
 fig2, ax2 = plt.subplots()
@@ -65,7 +64,6 @@ st.pyplot(fig2)
 
 # Histogramas y Boxplots
 st.subheader("📉 Distribuciones y Boxplots")
-ds_num = dataset.select_dtypes(include=['float64', 'int64'])
 for col in ds_num.columns:
     st.write(f"**{col}**")
     fig3, ax3 = plt.subplots()
@@ -76,44 +74,75 @@ for col in ds_num.columns:
     sns.boxplot(x=dataset[col], ax=ax4, color='lightgreen')
     st.pyplot(fig4)
 
-# Modelado: Regresión Lineal Múltiple
-st.subheader("📈 Regresión Lineal Múltiple")
+# Sidebar: Selección de modelo
+st.sidebar.header("1️⃣ Selecciona el modelo de predicción")
+modelo_seleccionado = st.sidebar.selectbox("Modelo", ["Regresión Lineal", "KNN"])
+
+# Variables predictoras y objetivo
 x = dataset[numeric_cols]
 y = dataset['Satisfaccion_Vida']
 
+# División de datos
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 scaler = StandardScaler()
 x_train_scaled = scaler.fit_transform(x_train)
 x_test_scaled = scaler.transform(x_test)
 
-modelo_rl = LinearRegression()
-modelo_rl.fit(x_train_scaled, y_train)
-y_pred = modelo_rl.predict(x_test_scaled)
+# REGRESIÓN LINEAL
+if modelo_seleccionado == "Regresión Lineal":
+    st.subheader("📈 Regresión Lineal Múltiple")
 
-st.write("**R² Score:**", round(r2_score(y_test, y_pred), 4))
-st.write("**MSE:**", round(mean_squared_error(y_test, y_pred), 2))
+    modelo_rl = LinearRegression()
+    modelo_rl.fit(x_train_scaled, y_train)
+    y_pred = modelo_rl.predict(x_test_scaled)
 
-# Gráfico de predicción vs realidad
-fig5, ax5 = plt.subplots()
-ax5.scatter(y_test, y_pred, alpha=0.5)
-ax5.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
-ax5.set_xlabel("Real")
-ax5.set_ylabel("Predicho")
-ax5.set_title("Regresión Lineal - Real vs Predicho")
-st.pyplot(fig5)
+    st.write("**R² Score:**", round(r2_score(y_test, y_pred), 4))
+    st.write("**MSE:**", round(mean_squared_error(y_test, y_pred), 2))
 
-# Clasificación KNN
-st.subheader("🔍 Clasificación con KNN")
+    # Gráfico de predicción vs realidad
+    fig5, ax5 = plt.subplots()
+    ax5.scatter(y_test, y_pred, alpha=0.5)
+    ax5.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+    ax5.set_xlabel("Real")
+    ax5.set_ylabel("Predicho")
+    ax5.set_title("Regresión Lineal - Real vs Predicho")
+    st.pyplot(fig5)
 
-edad = st.slider("Edad", 18, 80, 30)
-ingreso = st.slider("Ingreso mensual", 500, 10000, 2500)
-horas_estudio = st.slider("Horas de estudio semanales", 0, 50, 10)
+# KNN CLASIFICACIÓN
+elif modelo_seleccionado == "KNN":
+    st.subheader("🔍 Clasificación con KNN")
 
-nuevo_dato = [[edad, ingreso, horas_estudio]]
-nuevo_dato_scaled = scaler.transform(nuevo_dato)
+    # Entrada del usuario
+    edad = st.slider("Edad", 18, 80, 30)
+    ingreso = st.slider("Ingreso mensual", 500, 10000, 2500)
+    horas_estudio = st.slider("Horas de estudio semanales", 0, 50, 10)
 
-modelo_knn = KNeighborsClassifier(n_neighbors=3)
-modelo_knn.fit(x_train_scaled, y_train)
-prediccion_knn = modelo_knn.predict(nuevo_dato_scaled)
+    nuevo_dato = [[edad, ingreso, horas_estudio]]
+    nuevo_dato_scaled = scaler.transform(nuevo_dato)
 
-st.success(f"✅ Predicción de Satisfacción de Vida para el nuevo dato: **{prediccion_knn[0]}**")
+    modelo_knn = KNeighborsClassifier(n_neighbors=3)
+    modelo_knn.fit(x_train_scaled, y_train)
+    prediccion_knn = modelo_knn.predict(nuevo_dato_scaled)
+
+    st.success(f"✅ Predicción de Satisfacción de Vida para el nuevo dato: **{prediccion_knn[0]}**")
+
+    # Mostrar vecinos más cercanos
+    distancias, indices = modelo_knn.kneighbors(nuevo_dato_scaled)
+    vecinos = pd.DataFrame(x_train.iloc[indices[0]])
+    vecinos["Satisfacción_Vida"] = y_train.iloc[indices[0]].values
+    st.write("👥 Vecinos más cercanos:")
+    st.dataframe(vecinos)
+
+    # Matriz de confusión
+    y_pred_knn = modelo_knn.predict(x_test_scaled)
+    st.subheader("📌 Evaluación del Modelo KNN")
+    cm = confusion_matrix(y_test, y_pred_knn)
+    fig_cm, ax_cm = plt.subplots()
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax_cm)
+    ax_cm.set_title("Matriz de Confusión")
+    ax_cm.set_xlabel("Predicho")
+    ax_cm.set_ylabel("Real")
+    st.pyplot(fig_cm)
+
+    st.text("Reporte de Clasificación:")
+    st.text(classification_report(y_test, y_pred_knn))
